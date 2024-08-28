@@ -86,6 +86,11 @@ def get():
 def start_game(monster_index: int = None):
     global player_monster, enemy_monster, turn_count, game_log
     
+    try:
+        monster_index = int(monster_index)
+    except (TypeError, ValueError):
+        monster_index = None
+
     if monster_index is None or not (0 <= monster_index < len(space_monsters)):
         return [
             H1("Error"),
@@ -104,16 +109,18 @@ def battle_ui():
         H2("Battle"),
         *monster_info(player_monster),
         *monster_info(enemy_monster),
-        A("Attack", href="/player-turn/attack"),
-        A("Use Special Ability", href="/player-turn/special"),
+        A("Attack", href="/player-turn?action=attack"),
+        A("Use Special Ability", href="/player-turn?action=special"),
         H3("Game Log"),
         *[P(entry) for entry in game_log[-5:]]  # Show last 5 entries
     ]
 
-@rt("/player-turn/{action}")
-def player_turn(action):
+@rt("/player-turn")
+def player_turn(request):
     global turn_count, game_log
     
+    action = request.query_params.get("action")
+
     if player_monster is None or enemy_monster is None:
         return [
             H1("Error"),
