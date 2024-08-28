@@ -63,7 +63,7 @@ turn_count = 0
 game_log = []
 
 def monster_info(monster):
-    return Group(
+    return [
         H3(monster.name),
         P(f"HP: {monster.hp:.0f}/{monster.max_hp}"),
         P(f"Attack: {monster.attack}"),
@@ -72,25 +72,15 @@ def monster_info(monster):
         P(f"Description: {monster.ability_description}"),
         P(f"Success Chance: {monster.ability_chance * 100:.0f}%"),
         P(f"Cooldown: {max(monster.ability_cooldown - 1, 0)} turn(s)")
-    )
+    ]
 
 @rt("/")
 def get():
-    return (
-        Socials(
-            title="Space Monsters Game",
-            description="A FastHTML version of the Space Monsters game",
-        ),
-        Container(
-            Card(
-                Group(
-                    H1("Space Monsters Game"),
-                    P("Choose your Space Monster to start the game:"),
-                    *[A(monster.name, href=f"/start-game/{i}") for i, monster in enumerate(space_monsters)]
-                ),
-            ),
-        ),
-    )
+    return [
+        H1("Space Monsters Game"),
+        P("Choose your Space Monster to start the game:"),
+        *[A(monster.name, href=f"/start-game/{i}") for i, monster in enumerate(space_monsters)]
+    ]
 
 @rt("/start-game/{monster_index:int}")
 def start_game(monster_index):
@@ -102,19 +92,15 @@ def start_game(monster_index):
     return battle_ui()
 
 def battle_ui():
-    return Container(
-        Card(
-            Group(
-                H2("Battle"),
-                Div(monster_info(player_monster)),
-                Div(monster_info(enemy_monster)),
-                A("Attack", href="/player-turn/attack"),
-                A("Use Special Ability", href="/player-turn/special"),
-                H3("Game Log"),
-                *[P(entry) for entry in game_log[-5:]],  # Show last 5 entries
-            ),
-        ),
-    )
+    return [
+        H2("Battle"),
+        *monster_info(player_monster),
+        *monster_info(enemy_monster),
+        A("Attack", href="/player-turn/attack"),
+        A("Use Special Ability", href="/player-turn/special"),
+        H3("Game Log"),
+        *[P(entry) for entry in game_log[-5:]]  # Show last 5 entries
+    ]
 
 @rt("/player-turn/{action}")
 def player_turn(action):
@@ -152,15 +138,11 @@ def player_turn(action):
     return battle_ui()
 
 def game_over(result):
-    return Container(
-        Card(
-            Group(
-                H2("Game Over"),
-                H3(result),
-                *[P(entry) for entry in game_log],
-                A("Play Again", href="/")
-            )
-        )
-    )
+    return [
+        H2("Game Over"),
+        H3(result),
+        *[P(entry) for entry in game_log],
+        A("Play Again", href="/")
+    ]
 
 serve()
