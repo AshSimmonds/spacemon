@@ -2,7 +2,7 @@ from fasthtml.common import *
 from fasthtml.components import *
 import random
 
-app, rt = fast_app(hdrs=(htmx,))
+app, rt = fast_app()
 
 class SpaceMonster:
     def __init__(self, name, hp, attack, defense, special_ability, ability_description, ability_chance):
@@ -85,27 +85,12 @@ def get():
             Card(
                 Group(
                     H1("Space Monsters Game"),
-                    Div(id="game-area"),
-                ),
-                footer=(
-                    P("Choose your Space Monster to start the game!")
-                ),
-            ),
-        ),
-        Container(
-            Card(
-                Group(
-                    H2("Game Log"),
-                    Div(id="game-log"),
+                    P("Choose your Space Monster to start the game:"),
+                    *[A(monster.name, href=f"/start-game/{i}") for i, monster in enumerate(space_monsters)]
                 ),
             ),
         ),
     )
-
-@rt("/select-monster")
-def select_monster():
-    buttons = [Button(monster.name, hx_post=f"/start-game/{i}") for i, monster in enumerate(space_monsters)]
-    return Group(*buttons)
 
 @rt("/start-game/{monster_index:int}")
 def start_game(monster_index):
@@ -117,12 +102,18 @@ def start_game(monster_index):
     return battle_ui()
 
 def battle_ui():
-    return Group(
-        Div(monster_info(player_monster), id="player-info"),
-        Div(monster_info(enemy_monster), id="enemy-info"),
-        Button("Attack", hx_post="/player-turn/attack"),
-        Button("Use Special Ability", hx_post="/player-turn/special"),
-        Div(id="battle-result"),
+    return Container(
+        Card(
+            Group(
+                H2("Battle"),
+                Div(monster_info(player_monster)),
+                Div(monster_info(enemy_monster)),
+                A("Attack", href="/player-turn/attack"),
+                A("Use Special Ability", href="/player-turn/special"),
+                H3("Game Log"),
+                *[P(entry) for entry in game_log[-5:]],  # Show last 5 entries
+            ),
+        ),
     )
 
 @rt("/player-turn/{action}")
@@ -143,7 +134,7 @@ def player_turn(action):
 
     if enemy_monster.hp <= 0:
         game_log.append(f"{enemy_monster.name} fainted! {player_monster.name} wins!")
-        return Group(battle_ui(), update_game_log(), Div("Game Over! You Win!", id="battle-result"))
+        return game_over("You Win!")
 
     # Enemy turn
     if enemy_monster.ability_cooldown == 0 and random.random() < enemy_monster.ability_chance:
@@ -156,16 +147,20 @@ def player_turn(action):
 
     if player_monster.hp <= 0:
         game_log.append(f"{player_monster.name} fainted! {enemy_monster.name} wins!")
-        return Group(battle_ui(), update_game_log(), Div("Game Over! You Lose!", id="battle-result"))
+        return game_over("You Lose!")
 
-    return Group(battle_ui(), update_game_log())
+    return battle_ui()
 
-def update_game_log():
-    log_entries = [P(entry) for entry in game_log[-5:]]  # Show last 5 entries
-    return Div(Group(*log_entries), id="game-log", hx_swap_oob="true")
-
-@rt("/htmx")
-def htmx():
-    return htmx_script
+def game_over(result):
+    return Container(
+        Card(
+            Group(
+                H2("Game Over"),
+                H3(result),
+                *[P(entry) for entry in game_log],
+                A("Play Again", href="/")
+            )
+        )
+    )
 
 serve()
