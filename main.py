@@ -82,9 +82,17 @@ def get():
         *[A(monster.name, href=f"/start-game/{i}") for i, monster in enumerate(space_monsters)]
     ]
 
-@rt("/start-game/{monster_index:int}")
-def start_game(monster_index):
+@rt("/start-game/{monster_index}")
+def start_game(monster_index: int = None):
     global player_monster, enemy_monster, turn_count, game_log
+    
+    if monster_index is None or not (0 <= monster_index < len(space_monsters)):
+        return [
+            H1("Error"),
+            P("Invalid monster selection. Please choose a valid monster."),
+            A("Go back to selection", href="/")
+        ]
+    
     player_monster = space_monsters[monster_index]
     enemy_monster = random.choice([m for m in space_monsters if m != player_monster])
     turn_count = 0
@@ -105,6 +113,14 @@ def battle_ui():
 @rt("/player-turn/{action}")
 def player_turn(action):
     global turn_count, game_log
+    
+    if player_monster is None or enemy_monster is None:
+        return [
+            H1("Error"),
+            P("Game not properly initialized. Please start a new game."),
+            A("Start New Game", href="/")
+        ]
+    
     turn_count += 1
     game_log.append(f"--- Turn {turn_count} ---")
     player_monster.reduce_cooldowns()
@@ -117,6 +133,8 @@ def player_turn(action):
     elif action == "special":
         result = player_monster.use_special_ability(enemy_monster)
         game_log.append(result)
+    else:
+        game_log.append("Invalid action. Turn skipped.")
 
     if enemy_monster.hp <= 0:
         game_log.append(f"{enemy_monster.name} fainted! {player_monster.name} wins!")
